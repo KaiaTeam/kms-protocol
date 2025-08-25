@@ -73,7 +73,7 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
         uint256 duration = stopTime - startTime;
         
         // Calculate platform fee from deposit amount
-        uint256 platformFee = (deposit * platformFeeRate) / (FEE_DENOMINATOR + platformFeeRate);
+        uint256 platformFee = (deposit * platformFeeRate) / FEE_DENOMINATOR;
         uint256 netAmount = deposit - platformFee;
         
         // Verify that the provided flowRate matches the net amount and duration
