@@ -101,16 +101,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
@@ -118,7 +116,7 @@ contract MoneyStreamingTest is Test {
         // Fast forward 50 seconds
         vm.warp(startTime + 50);
         
-        uint256 expectedStreamed = FLOW_RATE * 50;
+        uint256 expectedStreamed = actualFlowRate * 50;
         uint256 receiverBalance = streaming.balanceOf(streamId, receiver);
         
         assertEq(receiverBalance, expectedStreamed);
@@ -128,16 +126,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
@@ -146,7 +142,7 @@ contract MoneyStreamingTest is Test {
         vm.warp(startTime + 50);
         
         uint256 initialBalance = token.balanceOf(receiver);
-        uint256 expectedWithdraw = FLOW_RATE * 50;
+        uint256 expectedWithdraw = actualFlowRate * 50;
         
         vm.prank(receiver);
         streaming.withdrawFromStream(streamId);
@@ -162,16 +158,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
@@ -182,11 +176,11 @@ contract MoneyStreamingTest is Test {
         vm.prank(sender);
         streaming.pauseStream(streamId);
         
-        (,,,,,,, uint256 remainingBalance, uint256 withdrawnBalance, bool isActive) = streaming.getStream(streamId);
+        (,,,,,,, uint256 remainingBalance,, bool isActive) = streaming.getStream(streamId);
         
         assertFalse(isActive);
         
-        uint256 expectedRemaining = requiredDeposit - (FLOW_RATE * 30);
+        uint256 expectedRemaining = netAmount - (actualFlowRate * 30);
         assertEq(remainingBalance, expectedRemaining);
     }
     
@@ -194,16 +188,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
@@ -217,8 +209,8 @@ contract MoneyStreamingTest is Test {
         vm.prank(sender);
         streaming.cancelStream(streamId);
         
-        uint256 expectedReceived = FLOW_RATE * 30;
-        uint256 expectedReturned = requiredDeposit - expectedReceived;
+        uint256 expectedReceived = actualFlowRate * 30;
+        uint256 expectedReturned = netAmount - expectedReceived;
         
         assertEq(token.balanceOf(receiver) - receiverInitialBalance, expectedReceived);
         assertEq(token.balanceOf(sender) - senderInitialBalance, expectedReturned);
@@ -268,16 +260,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
@@ -292,16 +282,14 @@ contract MoneyStreamingTest is Test {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
         
-        uint256 requiredDeposit = FLOW_RATE * DURATION;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        uint256 totalRequired = requiredDeposit + platformFee;
+        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            totalRequired,
-            FLOW_RATE,
+            deposit,
+            actualFlowRate,
             startTime,
             stopTime
         );
