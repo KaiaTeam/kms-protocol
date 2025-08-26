@@ -1,0 +1,715 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelStream",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createStream",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deposit",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "flowRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createStreamUSDT",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "usdtToken",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalUSDTAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "durationInSeconds",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createStreamUSDTWithDetails",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "usdtToken",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalUSDTAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getReceiverStreams",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSenderStreams",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getStream",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deposit",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "flowRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remainingBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawnBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUSDTBalance",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUSDTStreamInfo",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalUSDTAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "usdtPerSecond",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remainingUSDT",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawnUSDT",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextStreamId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pauseStream",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "receiverStreams",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "resumeStream",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newStopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "senderStreams",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "streams",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deposit",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "flowRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remainingBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "withdrawnBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFromStream",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "StreamCanceled",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "senderBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiverBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StreamCreated",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "deposit",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "flowRate",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "stopTime",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StreamPaused",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StreamResumed",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Withdrawal",
+    "inputs": [
+      {
+        "name": "streamId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "InsufficientDeposit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidFlowRate",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidStreamParams",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotAuthorized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StreamNotActive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StreamNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawFailed",
+    "inputs": []
+  }
+]
