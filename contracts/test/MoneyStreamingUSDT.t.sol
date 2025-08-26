@@ -9,8 +9,6 @@ contract MoneyStreamingUSDTTest is Test {
     MoneyStreaming public streaming;
     USDTMock public usdt;
     
-    address public owner = address(0x1);
-    address public feeCollector = address(0x2);
     address public sender = address(0x3);
     address public receiver = address(0x4);
     
@@ -18,23 +16,17 @@ contract MoneyStreamingUSDTTest is Test {
     uint256 public constant DURATION = 100 days; // 100 days in seconds
     
     function setUp() public {
-        vm.startPrank(owner);
-        
         // Deploy USDT mock token
         usdt = new USDTMock();
         
         // Deploy MoneyStreaming contract
-        streaming = new MoneyStreaming(feeCollector);
+        streaming = new MoneyStreaming();
         
         // Mint USDT to sender (note: USDT uses 6 decimals)
-        // Include platform fee (0.5%) in the minted amount
-        uint256 totalWithFee = TOTAL_USDT_AMOUNT + (TOTAL_USDT_AMOUNT * 50) / 10000;
-        usdt.mint(sender, usdt.toUSDT(totalWithFee * 20)); // 20x for multiple tests
+        usdt.mint(sender, usdt.toUSDT(TOTAL_USDT_AMOUNT * 20)); // 20x for multiple tests
         
         // Approve streaming contract to spend USDT
         usdt.mint(sender, usdt.toUSDT(100000)); // Additional for other tests
-        
-        vm.stopPrank();
         
         vm.prank(sender);
         usdt.approve(address(streaming), type(uint256).max);
@@ -80,9 +72,6 @@ contract MoneyStreamingUSDTTest is Test {
         assertEq(withdrawnUSDT, 0);
         assertTrue(isActive);
         
-        // Check platform fee was collected (0.5%)
-        uint256 expectedFee = (usdt.toUSDT(TOTAL_USDT_AMOUNT) * streaming.platformFeeRate()) / 10000;
-        assertEq(usdt.balanceOf(feeCollector), expectedFee);
         
         console2.log("USDT per second:", usdtPerSecond);
         console2.log("Duration:", stopTime - startTime, "seconds");
@@ -204,21 +193,16 @@ contract MoneyStreamingUSDTTest is Test {
         uint256 projectAmount = 50000;
         uint256 projectDuration = 90 days;
         
-        vm.startPrank(owner);
-        // First mint enough USDT for the project (including platform fee)
-        uint256 projectAmountWithFee = projectAmount + (projectAmount * 50) / 10000;
-        usdt.mint(sender, usdt.toUSDT(projectAmountWithFee));
-        vm.stopPrank();
+        // First mint enough USDT for the project
+        usdt.mint(sender, usdt.toUSDT(projectAmount));
         
-        vm.startPrank(sender);
-        
+        vm.prank(sender);
         uint256 streamId = streaming.createStreamUSDT(
             receiver,
             address(usdt),
             projectAmount,
             projectDuration
         );
-        vm.stopPrank();
         
         // After 30 days (1/3 completion), freelancer should have ~$16,667
         vm.warp(block.timestamp + 30 days);

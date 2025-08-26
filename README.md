@@ -476,27 +476,41 @@ await moneyStreaming.cancelStream(subscriptionId);
 
 ## 테스트 커버리지
 
-### 기본 기능 테스트 (MoneyStreaming.t.sol)
-- ✅ 스트림 생성 및 검증
-- ✅ 실시간 잔액 계산
-- ✅ 출금 기능
-- ✅ 일시정지/재개/취소
-- ✅ 권한 및 오류 처리
-- ✅ Flow rate 검증
+### 기본 기능 테스트 (MoneyStreaming.t.sol) - 9개 테스트
+- ✅ 스트림 생성 및 검증 (test_CreateStream)
+- ✅ 실시간 잔액 계산 (test_StreamBalance)
+- ✅ 출금 기능 (test_WithdrawFromStream)
+- ✅ 일시정지 (test_PauseStream)
+- ✅ 스트림 취소 (test_CancelStream)
+- ✅ 권한 및 오류 처리 (test_RevertWhen_WithdrawUnauthorized)
+- ✅ Flow rate 검증 (test_RevertWhen_CreateStreamInvalidFlowRate)
+- ✅ 입금 검증 (test_RevertWhen_CreateStreamInsufficientDeposit)
+- ✅ 스트림 목록 조회 (test_GetSenderAndReceiverStreams)
 
-### USDT 특화 테스트 (MoneyStreamingUSDT.t.sol)
-- ✅ USDT 스트림 생성 (두 가지 방법)
-- ✅ 6-decimal 정밀도 처리
-- ✅ 실제 시나리오 테스트 (월급, 프로젝트)
-- ✅ 달러 단위 잔액 조회
-- ✅ 소액 스트리밍 정확성
+### USDT 특화 테스트 (MoneyStreamingUSDT.t.sol) - 7개 테스트
+- ✅ USDT 스트림 생성 - 기본 방법 (test_CreateStreamUSDT)
+- ✅ USDT 스트림 생성 - 시간 지정 방법 (test_CreateStreamUSDTWithDetails)
+- ✅ USDT 실시간 잔액 조회 (test_USDTStreamBalance)
+- ✅ USDT 출금 기능 (test_WithdrawFromUSDTStream)
+- ✅ 6-decimal 정밀도 처리 (test_USDTDecimalHandling)
+- ✅ 실제 시나리오 - 월급 스트리밍 (test_RealWorldScenario_MonthlyPayroll)
+- ✅ 실제 시나리오 - 프로젝트 계약금 (test_RealWorldScenario_ProjectPayment)
 
 ### 테스트 실행 결과
 ```bash
 forge test --gas-report
-# ✅ 20개 테스트 모두 통과
-# ✅ 가스 효율성 검증 완료
-# ✅ 실제 시나리오 검증 완료
+
+# 기본 기능 테스트: 9개 모두 통과
+# USDT 특화 테스트: 7개 모두 통과
+# 총 테스트 개수: 16개
+# 테스트 결과: ✅ 모든 테스트 통과
+# 실행 시간: 2.23ms
+
+# 가스 사용량 분석:
+# - 스트림 생성: ~357,000 gas
+# - 출금: ~82,000 gas (평균)
+# - 일시정지: ~40,300 gas
+# - 취소: ~76,500 gas
 ```
 
 ### USDTMock 기반 테스트의 장점
@@ -831,15 +845,19 @@ function handleContractError(error) {
 # 가스 리포트 생성
 forge test --gas-report
 
-# 결과 예시:
-# ┌─────────────────────┬─────────────────┬──────┬────────┬──────┬─────────┐
-# │ Contract            │ Method          │ Min  │ Max    │ Avg  │ # calls │
-# ├─────────────────────┼─────────────────┼──────┼────────┼──────┼─────────┤
-# │ MoneyStreaming      │ createStreamUSDT│380000│ 410000 │387000│    5    │
-# │ MoneyStreaming      │ withdrawFromStream│95000│105000 │ 98900│   10    │
-# │ MoneyStreaming      │ pauseStream     │35000│ 45000 │ 40300│    3    │
-# │ MoneyStreaming      │ cancelStream    │70000│ 85000 │ 76500│    4    │
-# └─────────────────────┴─────────────────┴──────┴────────┴──────┴─────────┘
+# MoneyStreaming 컨트랙트 가스 사용량:
+# ┌─────────────────────────┬─────────┬─────────┬─────────┬─────────┬──────────┐
+# │ Function Name           │ Min     │ Avg     │ Median  │ Max     │ # Calls  │
+# ├─────────────────────────┼─────────┼─────────┼─────────┼─────────┼──────────┤
+# │ createStream            │ 22,644  │ 282,911 │ 357,229 │ 357,229 │    9     │
+# │ createStreamUSDT        │ 357,755 │ 357,755 │ 357,755 │ 357,755 │    6     │
+# │ createStreamUSDTWithDetails│357,703│ 357,703 │ 357,703 │ 357,703 │    1     │
+# │ withdrawFromStream      │ 30,908  │ 82,109  │ 99,169  │ 99,191  │    4     │
+# │ pauseStream             │ 40,301  │ 40,301  │ 40,301  │ 40,301  │    1     │
+# │ cancelStream            │ 76,503  │ 76,503  │ 76,503  │ 76,503  │    1     │
+# │ balanceOf               │ 18,028  │ 18,065  │ 18,084  │ 18,084  │    3     │
+# │ getUSDTBalance          │ 18,058  │ 18,107  │ 18,114  │ 18,114  │    8     │
+# └─────────────────────────┴─────────┴─────────┴─────────┴─────────┴──────────┘
 ```
 
 ### 가스 최적화 팁
@@ -877,9 +895,10 @@ const streamInfo = await moneyStreaming.getUSDTStreamInfo(streamId);
 
 #### Kaia 메인넷
 - 기본 가스 가격: 25 Gwei
-- 스트림 생성: ~$2-3
-- 출금: ~$0.5-1
-- 일시정지/재개: ~$0.2-0.5
+- 스트림 생성: ~$2-3 (357,000 gas)
+- 출금: ~$0.5-1 (82,000 gas)
+- 일시정지: ~$0.2-0.5 (40,300 gas)
+- 취소: ~$0.4-0.8 (76,500 gas)
 
 #### Kaia 테스트넷 (Kairos)
 - 기본 가스 가격: 25 Gwei  

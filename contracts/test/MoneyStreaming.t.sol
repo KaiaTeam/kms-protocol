@@ -9,41 +9,23 @@ contract MoneyStreamingTest is Test {
     MoneyStreaming public streaming;
     ERC20Mock public token;
     
-    address public owner = address(0x1);
-    address public feeCollector = address(0x2);
     address public sender = address(0x3);
     address public receiver = address(0x4);
     
-    uint256 public constant NET_AMOUNT = 1000e18; // Amount to be streamed (excluding fees)
+    uint256 public constant DEPOSIT = 1000e18; // Amount to be streamed
     uint256 public constant FLOW_RATE = 10e18; // 10 tokens per second  
     uint256 public constant DURATION = 100; // 100 seconds
-    uint256 public constant DEPOSIT = NET_AMOUNT + (NET_AMOUNT * 50) / 10000; // Include 0.5% platform fee
     
-    // Helper function to calculate correct parameters for creating a stream
-    function calculateStreamParams(uint256 desiredFlowRate, uint256 duration) internal view returns (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) {
-        uint256 requiredDeposit = desiredFlowRate * duration;
-        uint256 platformFee = (requiredDeposit * streaming.platformFeeRate()) / 10000;
-        deposit = requiredDeposit + platformFee;
-        
-        // Calculate actual values after platform fee is deducted
-        uint256 actualPlatformFee = (deposit * streaming.platformFeeRate()) / 10000;
-        netAmount = deposit - actualPlatformFee;
-        actualFlowRate = netAmount / duration;
-    }
     
     function setUp() public {
-        vm.startPrank(owner);
-        
         // Deploy mock ERC20 token
         token = new ERC20Mock();
         
         // Deploy MoneyStreaming contract
-        streaming = new MoneyStreaming(feeCollector);
+        streaming = new MoneyStreaming();
         
         // Mint tokens to sender (more for multiple tests)
         token.mint(sender, 100000e18); // 100,000 tokens for various tests
-        
-        vm.stopPrank();
         
         // Approve streaming contract to spend tokens
         vm.prank(sender);
@@ -53,15 +35,14 @@ contract MoneyStreamingTest is Test {
     function test_CreateStream() public {
         uint256 startTime = block.timestamp + 10;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -84,31 +65,26 @@ contract MoneyStreamingTest is Test {
         assertEq(streamSender, sender);
         assertEq(streamReceiver, receiver);
         assertEq(streamToken, address(token));
-        assertEq(streamDeposit, netAmount);
-        assertEq(streamFlowRate, actualFlowRate);
+        assertEq(streamDeposit, DEPOSIT);
+        assertEq(streamFlowRate, expectedFlowRate);
         assertEq(streamStartTime, startTime);
         assertEq(streamStopTime, stopTime);
-        assertEq(remainingBalance, netAmount);
+        assertEq(remainingBalance, DEPOSIT);
         assertEq(withdrawnBalance, 0);
         assertTrue(isActive);
-        
-        // Check fee collector received platform fee
-        uint256 expectedFee = (deposit * streaming.platformFeeRate()) / 10000;
-        assertEq(token.balanceOf(feeCollector), expectedFee);
     }
     
     function test_StreamBalance() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -116,7 +92,7 @@ contract MoneyStreamingTest is Test {
         // Fast forward 50 seconds
         vm.warp(startTime + 50);
         
-        uint256 expectedStreamed = actualFlowRate * 50;
+        uint256 expectedStreamed = expectedFlowRate * 50;
         uint256 receiverBalance = streaming.balanceOf(streamId, receiver);
         
         assertEq(receiverBalance, expectedStreamed);
@@ -125,15 +101,14 @@ contract MoneyStreamingTest is Test {
     function test_WithdrawFromStream() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -142,7 +117,7 @@ contract MoneyStreamingTest is Test {
         vm.warp(startTime + 50);
         
         uint256 initialBalance = token.balanceOf(receiver);
-        uint256 expectedWithdraw = actualFlowRate * 50;
+        uint256 expectedWithdraw = expectedFlowRate * 50;
         
         vm.prank(receiver);
         streaming.withdrawFromStream(streamId);
@@ -157,15 +132,14 @@ contract MoneyStreamingTest is Test {
     function test_PauseStream() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -180,22 +154,21 @@ contract MoneyStreamingTest is Test {
         
         assertFalse(isActive);
         
-        uint256 expectedRemaining = netAmount - (actualFlowRate * 30);
+        uint256 expectedRemaining = DEPOSIT - (expectedFlowRate * 30);
         assertEq(remainingBalance, expectedRemaining);
     }
     
     function test_CancelStream() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate, uint256 netAmount) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -209,8 +182,8 @@ contract MoneyStreamingTest is Test {
         vm.prank(sender);
         streaming.cancelStream(streamId);
         
-        uint256 expectedReceived = actualFlowRate * 30;
-        uint256 expectedReturned = netAmount - expectedReceived;
+        uint256 expectedReceived = expectedFlowRate * 30;
+        uint256 expectedReturned = DEPOSIT - expectedReceived;
         
         assertEq(token.balanceOf(receiver) - receiverInitialBalance, expectedReceived);
         assertEq(token.balanceOf(sender) - senderInitialBalance, expectedReturned);
@@ -259,15 +232,14 @@ contract MoneyStreamingTest is Test {
     function test_RevertWhen_WithdrawUnauthorized() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -281,15 +253,14 @@ contract MoneyStreamingTest is Test {
     function test_GetSenderAndReceiverStreams() public {
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + DURATION;
-        
-        (uint256 deposit, uint256 actualFlowRate,) = calculateStreamParams(FLOW_RATE, DURATION);
+        uint256 expectedFlowRate = DEPOSIT / DURATION;
         
         vm.prank(sender);
         uint256 streamId = streaming.createStream(
             receiver,
             address(token),
-            deposit,
-            actualFlowRate,
+            DEPOSIT,
+            expectedFlowRate,
             startTime,
             stopTime
         );
@@ -303,102 +274,4 @@ contract MoneyStreamingTest is Test {
         assertEq(receiverStreams[0], streamId);
     }
     
-    function test_SetPlatformFeeRate() public {
-        uint256 newFeeRate = 100; // 1%
-        
-        vm.prank(owner);
-        streaming.setPlatformFeeRate(newFeeRate);
-        
-        assertEq(streaming.platformFeeRate(), newFeeRate);
-    }
-    
-    function test_RevertWhen_SetPlatformFeeRateTooHigh() public {
-        uint256 tooHighFeeRate = 1001; // 10.01%
-        
-        vm.prank(owner);
-        vm.expectRevert("Fee rate cannot exceed 10%");
-        streaming.setPlatformFeeRate(tooHighFeeRate);
-    }
-    
-    function test_PlatformFeeCalculationAccuracy() public {
-        uint256 startTime = block.timestamp;
-        uint256 stopTime = startTime + DURATION;
-        
-        // Test with different deposit amounts to verify fee calculation accuracy
-        uint256[] memory testDeposits = new uint256[](3);
-        testDeposits[0] = 1000e18;  // 1000 tokens
-        testDeposits[1] = 5000e18;  // 5000 tokens  
-        testDeposits[2] = 10000e18; // 10000 tokens
-        
-        for (uint256 i = 0; i < testDeposits.length; i++) {
-            uint256 deposit = testDeposits[i];
-            
-            // Calculate expected platform fee: fee = (deposit * feeRate) / 10000
-            uint256 expectedPlatformFee = (deposit * streaming.platformFeeRate()) / 10000;
-            uint256 expectedNetAmount = deposit - expectedPlatformFee;
-            uint256 expectedFlowRate = expectedNetAmount / DURATION;
-            
-            uint256 initialFeeCollectorBalance = token.balanceOf(feeCollector);
-            
-            vm.prank(sender);
-            uint256 streamId = streaming.createStream(
-                receiver,
-                address(token),
-                deposit,
-                expectedFlowRate,
-                startTime,
-                stopTime
-            );
-            
-            // Verify platform fee was collected correctly
-            uint256 actualPlatformFee = token.balanceOf(feeCollector) - initialFeeCollectorBalance;
-            assertEq(actualPlatformFee, expectedPlatformFee, "Platform fee calculation incorrect");
-            
-            // Verify stream was created with correct net amount
-            (,,,uint256 streamDeposit,,,,,,) = streaming.getStream(streamId);
-            assertEq(streamDeposit, expectedNetAmount, "Stream deposit should be net amount");
-            
-            console2.log("Test deposit:", deposit / 1e18, "tokens");
-            console2.log("Platform fee:", actualPlatformFee / 1e18, "tokens");
-            console2.log("Net amount:", expectedNetAmount / 1e18, "tokens");
-            console2.log("---");
-        }
-    }
-    
-    function test_FlowRateValidation() public {
-        uint256 startTime = block.timestamp;
-        uint256 stopTime = startTime + DURATION;
-        uint256 deposit = 1000e18;
-        
-        // Calculate correct flow rate
-        uint256 platformFee = (deposit * streaming.platformFeeRate()) / 10000;
-        uint256 netAmount = deposit - platformFee;
-        uint256 correctFlowRate = netAmount / DURATION;
-        
-        // Test with correct flow rate - should succeed
-        vm.prank(sender);
-        uint256 streamId = streaming.createStream(
-            receiver,
-            address(token),
-            deposit,
-            correctFlowRate,
-            startTime,
-            stopTime
-        );
-        assertTrue(streamId > 0, "Stream should be created with correct flow rate");
-        
-        // Test with incorrect flow rate - should fail
-        uint256 incorrectFlowRate = correctFlowRate + 1; // Off by 1 wei
-        
-        vm.prank(sender);
-        vm.expectRevert(abi.encodeWithSelector(MoneyStreaming.InvalidFlowRate.selector));
-        streaming.createStream(
-            receiver,
-            address(token),
-            deposit,
-            incorrectFlowRate,
-            startTime,
-            stopTime
-        );
-    }
 }
