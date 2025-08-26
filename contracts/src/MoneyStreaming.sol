@@ -44,7 +44,7 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
     event StreamPaused(uint256 indexed streamId, address indexed sender);
     event StreamResumed(uint256 indexed streamId, address indexed sender);
     event StreamCanceled(uint256 indexed streamId, address indexed sender, uint256 senderBalance, uint256 receiverBalance);
-    event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount);
+    event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount, uint256 timestamp);
     
     error StreamNotFound();
     error NotAuthorized();
@@ -199,7 +199,7 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
         // Transfer to receiver
         IERC20(stream.token).transfer(stream.receiver, withdrawable);
         
-        emit Withdrawal(streamId, stream.receiver, withdrawable);
+        emit Withdrawal(streamId, stream.receiver, withdrawable, block.timestamp);
     }
     
     function balanceOf(uint256 streamId, address account) public view returns (uint256) {

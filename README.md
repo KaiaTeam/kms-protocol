@@ -451,7 +451,7 @@ event StreamCanceled(
 );
 
 // 출금 시
-event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount);
+event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount, uint256 timestamp);
 ```
 
 ### 에러 처리
@@ -761,10 +761,13 @@ async function withdrawFromStream(streamId) {
     
     const withdrawEvent = receipt.events.find(e => e.event === 'Withdrawal');
     const withdrawnAmount = withdrawEvent.args.amount;
+    const withdrawTimestamp = withdrawEvent.args.timestamp;
     
     return {
       success: true,
       withdrawnUSDT: ethers.utils.formatUnits(withdrawnAmount, 6),
+      timestamp: withdrawTimestamp.toString(),
+      withdrawTime: new Date(withdrawTimestamp * 1000).toISOString(),
       txHash: receipt.transactionHash
     };
   } catch (error) {
@@ -809,18 +812,20 @@ function setupEventListeners() {
   });
   
   // 출금 이벤트
-  moneyStreaming.on('Withdrawal', async (streamId, receiver, amount) => {
+  moneyStreaming.on('Withdrawal', async (streamId, receiver, amount, timestamp) => {
     console.log('Withdrawal occurred:', {
       streamId: streamId.toString(),
       receiver,
-      amountUSDT: ethers.utils.formatUnits(amount, 6)
+      amountUSDT: ethers.utils.formatUnits(amount, 6),
+      timestamp: new Date(timestamp * 1000).toISOString()
     });
     
     // 알림 발송
     await sendNotification(receiver, {
       type: 'withdrawal',
       streamId: streamId.toString(),
-      amount: ethers.utils.formatUnits(amount, 6)
+      amount: ethers.utils.formatUnits(amount, 6),
+      timestamp: timestamp.toString()
     });
   });
 }
