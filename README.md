@@ -31,8 +31,6 @@ Kaia 블록체인 기반의 실시간 자금 스트리밍 프로토콜입니다.
 ### 🛡️ 보안 및 신뢰성
 - **재진입 공격 방지**: ReentrancyGuard로 보안 강화
   - *왜 필요한가?* 해커의 악의적 공격으로부터 사용자 자금 보호
-- **소유권 관리**: Ownable 패턴으로 관리자 기능 보호
-  - *왜 필요한가?* 플랫폼 설정 변경을 승인된 관리자만 가능하도록 제한
 - **입력값 검증**: 모든 파라미터의 엄격한 유효성 검사
   - *왜 필요한가?* 잘못된 데이터로 인한 오작동 및 자금 손실 방지
 
@@ -239,7 +237,7 @@ function withdrawFromStream(uint256 streamId) external nonReentrant
 
 **이벤트 발생:**
 ```solidity
-event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount);
+event Withdrawal(uint256 indexed streamId, address indexed receiver, uint256 amount, uint256 timestamp);
 ```
 
 ### 4. 스트림 제어
@@ -267,10 +265,11 @@ function resumeStream(uint256 streamId, uint256 newStopTime) external
 **설명:**
 - **권한**: `sender`만 호출 가능
 - **조건**: 스트림이 비활성 상태여야 함 (`isActive == false`)
-- **매개변수**: `newStopTime`은 현재 시간보다 미래여야 함
+- **매개변수**: `newStopTime`은 현재 시간보다 미래여야 함 (필수 매개변수)
 - **효과**:
   - `stopTime`을 `newStopTime`으로 업데이트
   - `isActive`를 `true`로 설정
+  - 스트림이 현재 시점부터 새로운 종료시간까지 다시 활성화
 - **이벤트**: `StreamResumed(streamId, sender)`
 
 #### 취소 (송금자 또는 수령자)  
@@ -527,7 +526,6 @@ forge test --gas-report
 # 환경 변수 설정
 export PRIVATE_KEY="your_private_key"
 export KAIA_RPC_URL="https://public-en.kairos.node.kaia.io"
-export FEE_COLLECTOR="0x..." # 수수료 수집자 주소
 
 # 배포 실행
 forge script script/DeployMoneyStreaming.s.sol:DeployMoneyStreamingScript \
@@ -554,9 +552,8 @@ forge script script/DeployMoneyStreaming.s.sol:DeployMoneyStreamingScript \
 
 ### 🔒 구현된 보안 기능
 - **ReentrancyGuard**: 재진입 공격 차단
-- **Ownable**: 관리자 권한 보호
 - **Input Validation**: 모든 입력값 검증
-- **SafeERC20**: 안전한 토큰 전송
+- **Standard ERC20**: 일반 ERC20 transfer 메소드 사용
 - **Flow Rate Validation**: 정확한 스트리밍 비율 검증
 
 ### ⚠️ 주의사항
@@ -797,7 +794,7 @@ app.post('/api/streams', async (req, res) => {
     res.json({
       success: true,
       requiredAllowance: ethers.utils.formatUnits(requiredAllowance, 6),
-      netAmount: usdtAmount
+      totalAmount: usdtAmount
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
