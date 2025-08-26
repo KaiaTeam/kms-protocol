@@ -195,11 +195,15 @@ function getUSDTStreamInfo(uint256 streamId) external view returns (
     uint256 usdtPerSecond,    // 초당 스트리밍 속도 (달러 단위)
     uint256 startTime,        // 시작 시간 (Unix timestamp)
     uint256 stopTime,         // 종료 시간 (Unix timestamp)
-    uint256 remainingUSDT,    // 남은 스트리밍 금액 (달러 단위)
+    uint256 remainingUSDT,    // 실시간 남은 스트리밍 금액 (달러 단위)
     uint256 withdrawnUSDT,    // 이미 출금된 금액 (달러 단위)
     bool isActive             // 스트림 활성 상태
 )
 ```
+**주요 특징:**
+- **실시간 계산**: `remainingUSDT`는 현재 시점 기준으로 실시간 계산됨
+- **스트림 검증**: 존재하지 않는 스트림 ID에 대해 `StreamNotFound` 에러 발생
+- **정확한 잔액**: 활성 스트림의 경우 현재 시점까지의 스트리밍을 반영한 정확한 잔여 금액 제공
 
 #### 일반 스트림 상세 정보 조회
 ```solidity
@@ -207,15 +211,18 @@ function getStream(uint256 streamId) external view returns (
     address sender,
     address receiver, 
     address token,
-    uint256 deposit,          // wei 단위 (플랫폼 수수료 제외된 순 금액)
+    uint256 deposit,          // wei 단위 (총 예치 금액)
     uint256 flowRate,         // wei per second
     uint256 startTime,
     uint256 stopTime,
-    uint256 remainingBalance, // wei 단위
-    uint256 withdrawnBalance, // wei 단위
+    uint256 remainingBalance, // wei 단위 (일시정지 시점의 남은 금액)
+    uint256 withdrawnBalance, // wei 단위 (이미 출금된 총 금액)
     bool isActive
 )
 ```
+**주의사항:**
+- `remainingBalance`는 스트림이 일시정지된 시점의 금액으로, 실시간 값이 아님
+- 실시간 잔액이 필요한 경우 `balanceOf()` 함수 사용 권장
 
 ### 3. 출금
 *왜 출금 기능이 필요한가?* 스트리밍된 금액을 실제 지갑으로 이동하여 사용 가능한 자금으로 전환
@@ -267,10 +274,12 @@ function resumeStream(uint256 streamId, uint256 newStopTime) external
 - **조건**: 스트림이 비활성 상태여야 함 (`isActive == false`)
 - **매개변수**: `newStopTime`은 현재 시간보다 미래여야 함 (필수 매개변수)
 - **효과**:
+  - **중요**: `startTime`을 현재 시간(`block.timestamp`)으로 업데이트
   - `stopTime`을 `newStopTime`으로 업데이트
   - `isActive`를 `true`로 설정
   - 스트림이 현재 시점부터 새로운 종료시간까지 다시 활성화
 - **이벤트**: `StreamResumed(streamId, sender)`
+- **주의**: 재개 시 `startTime`이 현재 시간으로 재설정되어 정확한 flow rate 계산이 가능
 
 #### 취소 (송금자 또는 수령자)  
 *왜 취소가 필요한가?* 계약 파기 시에도 공정한 정산으로 양측 모두 합리적 결과 보장

@@ -126,6 +126,8 @@ contract MoneyStreaming is ReentrancyGuard {
         if (stream.isActive) revert StreamNotActive();
         if (newStopTime <= block.timestamp) revert InvalidStreamParams();
         
+        // Update startTime to current time for accurate flow rate calculation
+        stream.startTime = block.timestamp;
         stream.stopTime = newStopTime;
         stream.isActive = true;
         
@@ -371,45 +373,41 @@ contract MoneyStreaming is ReentrancyGuard {
         uint256 usdtPerSecond,        // Human readable flow rate per second
         uint256 startTime,
         uint256 stopTime,
-        uint256 remainingUSDT,        // Human readable remaining amount
+        uint256 remainingUSDT,        // Human readable remaining amount (real-time)
         uint256 withdrawnUSDT,        // Human readable withdrawn amount
         bool isActive
     ) {
-        (
-            address streamSender,
-            address streamReceiver,
-            address streamToken,
-            uint256 deposit,
-            uint256 flowRate,
-            uint256 streamStartTime,
-            uint256 streamStopTime,
-            uint256 remainingBalance,
-            uint256 withdrawnBalance,
-            bool streamIsActive
-        ) = (
-            streams[streamId].sender,
-            streams[streamId].receiver,
-            streams[streamId].token,
-            streams[streamId].deposit,
-            streams[streamId].flowRate,
-            streams[streamId].startTime,
-            streams[streamId].stopTime,
-            streams[streamId].remainingBalance,
-            streams[streamId].withdrawnBalance,
-            streams[streamId].isActive
-        );
+        Stream storage stream = streams[streamId];
+        if (stream.sender == address(0)) revert StreamNotFound();
+        
+        // Calculate real-time remaining balance
+        uint256 currentRemainingUSDT;
+        if (stream.isActive && block.timestamp > stream.startTime && block.timestamp < stream.stopTime) {
+            // Active stream: calculate real-time remaining balance
+            uint256 elapsed = _calculateElapsedTime(streamId);
+            uint256 streamed = elapsed * stream.flowRate;
+            
+            if (streamed > stream.deposit) {
+                streamed = stream.deposit;
+            }
+            
+            currentRemainingUSDT = (stream.deposit - streamed) / 10**6;
+        } else {
+            // Inactive stream: use stored remaining balance
+            currentRemainingUSDT = stream.remainingBalance / 10**6;
+        }
         
         return (
-            streamSender,
-            streamReceiver,
-            streamToken,
-            deposit / 10**6,          // Convert to human readable
-            flowRate / 10**6,         // Convert to human readable (USDT per second)
-            streamStartTime,
-            streamStopTime,
-            remainingBalance / 10**6, // Convert to human readable
-            withdrawnBalance / 10**6, // Convert to human readable
-            streamIsActive
+            stream.sender,
+            stream.receiver,
+            stream.token,
+            stream.deposit / 10**6,          // Convert to human readable
+            stream.flowRate / 10**6,         // Convert to human readable (USDT per second)
+            stream.startTime,
+            stream.stopTime,
+            currentRemainingUSDT,            // Real-time remaining amount
+            stream.withdrawnBalance / 10**6, // Convert to human readable
+            stream.isActive
         );
     }
 }
