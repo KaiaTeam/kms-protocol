@@ -55,6 +55,14 @@ contracts/
 └── README.md                   # 이 문서
 ```
 
+### USDTMock 테스트 토큰
+*왜 USDTMock이 필요한가?* 실제 USDT 토큰 없이도 로컬/테스트넷에서 스트리밍 기능을 완전히 테스트할 수 있도록 지원
+
+#### 주요 특징
+- **6 decimals**: 실제 USDT와 동일한 소수점 자리수
+- **Mint/Burn**: 테스트용 토큰 발행 및 소각 기능
+- **변환 함수**: 달러 ↔ wei 단위 간편 변환
+
 ## 설치 및 설정
 
 ### 필요 조건
@@ -74,6 +82,45 @@ forge test
 
 # 가스 리포트와 함께 테스트
 forge test --gas-report
+```
+
+### USDTMock 사용법 (테스트/개발용)
+
+#### 1. USDTMock 배포
+```solidity
+// Foundry 스크립트에서
+USDTMock usdtMock = new USDTMock();
+```
+
+#### 2. 테스트용 USDT 발행
+```solidity
+// 테스트 계정에 1000 USDT 발행
+usdtMock.mint(testAccount, usdtMock.toUSDT(1000)); // 1000 달러 = 1,000,000,000 wei
+```
+
+#### 3. 편의 함수 활용
+```solidity
+// 달러 → wei 변환
+uint256 weiAmount = usdtMock.toUSDT(500);    // $500 → 500,000,000 wei
+
+// wei → 달러 변환  
+uint256 dollarAmount = usdtMock.fromUSDT(500000000); // 500,000,000 wei → $500
+```
+
+#### 4. 스트리밍 테스트 예제
+```javascript
+// JavaScript 테스트에서
+const usdtMock = await USDTMock.deploy();
+await usdtMock.mint(sender.address, ethers.utils.parseUnits("10000", 6)); // $10,000 발행
+
+// 스트림 생성 테스트
+await usdtMock.connect(sender).approve(moneyStreaming.address, ethers.utils.parseUnits("1005", 6));
+const streamId = await moneyStreaming.connect(sender).createStreamUSDT(
+    receiver.address,
+    usdtMock.address,
+    1000,           // $1000
+    30 * 24 * 3600  // 30일
+);
 ```
 
 ## 스마트 컨트랙트 사용법
@@ -542,6 +589,13 @@ forge test --gas-report
 # ✅ 가스 효율성 검증 완료
 # ✅ 실제 시나리오 검증 완료
 ```
+
+### USDTMock 기반 테스트의 장점
+*왜 USDTMock을 사용하나?*
+- **비용 절약**: 실제 USDT 토큰 구매 없이 테스트 가능
+- **완전한 제어**: 필요한 만큼 토큰 발행/소각으로 다양한 시나리오 테스트
+- **실제 환경 모사**: 6 decimals 구조로 프로덕션 환경과 동일한 조건 테스트
+- **개발 효율성**: 로컬 개발 환경에서 즉시 테스트 실행 가능
 
 ## 배포 가이드
 
