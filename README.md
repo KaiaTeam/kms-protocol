@@ -19,8 +19,6 @@ Kaia 블록체인 기반의 실시간 자금 스트리밍 프로토콜입니다.
   - *왜 필요한가?* 달러 기준 정확한 금액 계산으로 환율 변동 위험 제거
 - **직관적 인터페이스**: 달러 단위로 직접 입력 (복잡한 wei 계산 불필요)
   - *왜 필요한가?* 일반 사용자도 쉽게 사용할 수 있는 친화적 인터페이스 제공
-- **정확한 계산**: 플랫폼 수수료와 스트리밍 금액의 정밀한 분리
-  - *왜 필요한가?* 투명한 수수료 구조로 사용자 신뢰도 향상
 
 ### 🎯 스마트 제어
 - **일시정지/재개**: 송금자가 스트림을 언제든 제어 가능
@@ -114,7 +112,7 @@ const usdtMock = await USDTMock.deploy();
 await usdtMock.mint(sender.address, ethers.utils.parseUnits("10000", 6)); // $10,000 발행
 
 // 스트림 생성 테스트
-await usdtMock.connect(sender).approve(moneyStreaming.address, ethers.utils.parseUnits("1005", 6));
+await usdtMock.connect(sender).approve(moneyStreaming.address, ethers.utils.parseUnits("1000", 6));
 const streamId = await moneyStreaming.connect(sender).createStreamUSDT(
     receiver.address,
     usdtMock.address,
@@ -141,7 +139,6 @@ function createStreamUSDT(
 **주의사항:**
 - `totalUSDTAmount`는 decimals를 제외한 달러 단위 (1000 = $1000)
 - 내부적으로 `totalUSDTAmount * 10^6`으로 변환됨
-- 플랫폼 수수료가 자동으로 계산되어 추가 차감됨
 - `startTime`은 `block.timestamp`로 자동 설정
 
 #### 시간 지정 방법 - createStreamUSDTWithDetails
@@ -300,62 +297,25 @@ function cancelStream(uint256 streamId) external nonReentrant
 - **자동 전송**: 계산된 잔액을 각각 `receiver`와 `sender`에게 전송
 - **이벤트**: `StreamCanceled(streamId, sender, senderBalance, receiverBalance)`
 
-### 5. 관리자 기능 (소유자만)
-*왜 관리자 기능이 필요한가?* 플랫폼 운영비 충당 및 서비스 개선을 위한 수익 구조 필요
-
-#### 플랫폼 수수료 설정
-*왜 수수료 조절이 필요한가?* 시장 상황과 경쟁력에 따른 유연한 수수료 정책 운영
-```solidity
-function setPlatformFeeRate(uint256 newFeeRate) external onlyOwner
-```
-**설명:**
-- **권한**: 컨트랙트 소유자만 호출 가능
-- **제한**: `newFeeRate <= 1000` (최대 10%)
-- **단위**: basis points (100 = 1%, 50 = 0.5%)
-- **기본값**: 50 (0.5%)
-- **계산 공식**: `platformFee = (deposit * platformFeeRate) / 10000`
-
-#### 수수료 수집자 변경
-*왜 수집자 변경이 필요한가?* 운영 주체 변경이나 멀티시그 지갑 도입 시 유연한 대응
-```solidity
-function setFeeCollector(address newFeeCollector) external onlyOwner
-```
-**설명:**
-- **권한**: 컨트랙트 소유자만 호출 가능
-- **제한**: `newFeeCollector != address(0)`
-- **용도**: 플랫폼 수수료를 받을 주소 설정
-- **초기값**: 생성자에서 설정된 주소
 
 ## Flow Rate 계산 공식 및 상세 스펙
 
 ### 핵심 계산 공식
 
-#### 1. 플랫폼 수수료 계산
-```javascript
-// 수수료 계산 (basis points)
-const platformFee = (deposit * platformFeeRate) / 10000;
-const netAmount = deposit - platformFee;
-
-// 예시: $1000 예치, 0.5% 수수료
-const deposit = 1000 * 10**6;  // 1000 USDT (6 decimals)
-const platformFee = (1000000000 * 50) / 10000;  // 5000000 (5 USDT)
-const netAmount = 995000000;  // 995 USDT 실제 스트리밍
-```
-
-#### 2. Flow Rate 계산
+#### Flow Rate 계산
 ```javascript
 // createStreamUSDT의 경우
-const flowRate = netAmount / durationInSeconds;
+const flowRate = deposit / durationInSeconds;
 
 // createStream의 경우 (일반)
-const expectedFlowRate = netAmount / (stopTime - startTime);
+const expectedFlowRate = deposit / (stopTime - startTime);
 // 제공된 flowRate와 expectedFlowRate가 일치해야 함
 if (flowRate !== expectedFlowRate) {
     throw new Error('InvalidFlowRate');
 }
 ```
 
-#### 3. 실시간 잔액 계산
+#### 실시간 잔액 계산
 ```javascript
 // 경과 시간 계산
 function calculateElapsedTime(stream, currentTime) {
@@ -396,7 +356,7 @@ struct Stream {
     address sender;           // 송금자 주소
     address receiver;         // 수령자 주소
     address token;            // ERC20 토큰 주소
-    uint256 deposit;          // 실제 스트리밍 금액 (플랫폼 수수료 제외)
+    uint256 deposit;          // 총 스트리밍 금액
     uint256 flowRate;         // wei per second
     uint256 startTime;        // Unix timestamp
     uint256 stopTime;         // Unix timestamp
@@ -416,9 +376,6 @@ mapping(address => uint256[]) public receiverStreams; // receiver => streamIds[]
 #### 상수 및 변수
 ```solidity
 uint256 public nextStreamId = 1;                    // 다음 스트림 ID
-uint256 public platformFeeRate = 50;                // 0.5% (basis points)
-uint256 private constant FEE_DENOMINATOR = 10000;   // 수수료 계산 분모
-address public feeCollector;                        // 수수료 수집자
 ```
 
 ### 이벤트 스펙
@@ -430,7 +387,7 @@ event StreamCreated(
     address indexed sender,
     address indexed receiver,
     address token,
-    uint256 deposit,          // 사용자가 실제 예치한 총 금액 (수수료 포함)
+    uint256 deposit,          // 사용자가 실제 예치한 총 금액
     uint256 flowRate,
     uint256 startTime,
     uint256 stopTime
@@ -516,53 +473,6 @@ const subscriptionId = await moneyStreaming.createStreamUSDT(
 await moneyStreaming.cancelStream(subscriptionId);
 ```
 
-## 플랫폼 수수료 시스템
-
-### 수수료 계산 공식 (정확한 버전)
-```javascript
-// 실제 구현된 공식 (MoneyStreaming.sol 기준)
-const platformFee = (deposit * platformFeeRate) / FEE_DENOMINATOR;
-const netAmount = deposit - platformFee;
-
-// 여기서:
-// deposit = 사용자가 예치하는 총 금액
-// platformFeeRate = basis points (50 = 0.5%)
-// FEE_DENOMINATOR = 10000
-```
-
-### 정확한 예시 (기본 0.5% 수수료)
-```javascript
-// USDT 1000달러 스트리밍 예시
-const totalUSDTAmount = 1000;  // $1000 (사용자 입력)
-const netAmount = 1000 * 10**6;  // 1,000,000,000 wei (6 decimals)
-const platformFee = (1000000000 * 50) / 10000;  // 5,000,000 wei (5 USDT)
-const deposit = netAmount + platformFee;  // 1,005,000,000 wei (1005 USDT)
-
-// 결과:
-// - 사용자가 실제 지불: $1,005 USDT
-// - 플랫폼 수수료: $5 USDT (정확히 0.5%)
-// - 실제 스트리밍 금액: $1,000 USDT
-```
-
-### createStream vs createStreamUSDT 수수료 처리 차이
-
-#### createStream (일반 함수)
-```javascript
-// 사용자가 수수료를 미리 계산해서 deposit에 포함시켜야 함
-const desiredNetAmount = 1000 * 10**6;  // 1000 USDT 스트리밍 원함
-const deposit = desiredNetAmount + (desiredNetAmount * 50) / 10000;
-// deposit을 매개변수로 전달
-```
-
-#### createStreamUSDT (편의 함수)
-```javascript
-// 사용자는 원하는 스트리밍 금액만 입력
-const totalUSDTAmount = 1000;  // $1000 스트리밍 원함
-// 내부적으로 자동 계산:
-// netAmount = 1000 * 10^6
-// platformFee = (netAmount * 50) / 10000
-// deposit = netAmount + platformFee
-```
 
 ## 테스트 커버리지
 
@@ -572,7 +482,6 @@ const totalUSDTAmount = 1000;  // $1000 스트리밍 원함
 - ✅ 출금 기능
 - ✅ 일시정지/재개/취소
 - ✅ 권한 및 오류 처리
-- ✅ 플랫폼 수수료 정확성
 - ✅ Flow rate 검증
 
 ### USDT 특화 테스트 (MoneyStreamingUSDT.t.sol)
@@ -639,7 +548,6 @@ forge script script/DeployMoneyStreaming.s.sol:DeployMoneyStreamingScript \
 ### ⚠️ 주의사항
 - 스마트 컨트랙트는 수정 불가능하므로 배포 전 충분한 테스트 필요
 - USDT 토큰 주소는 공식 주소를 사용해야 함
-- 플랫폼 수수료는 최대 10%로 제한됨
 - 소액 스트리밍 시 정밀도 손실 가능성 있음
 
 ## 가스 최적화
@@ -679,10 +587,8 @@ async function createUSDTStream(receiverAddress, usdtAmount, durationDays) {
     // USDT 토큰 승인 (사전 필요)
     const usdtContract = new ethers.Contract(USDT_TOKEN_ADDRESS, ERC20_ABI, signer);
     
-    // 필요한 총 예치금 계산 (수수료 포함)
-    const netAmount = ethers.utils.parseUnits(usdtAmount.toString(), 6); // USDT는 6 decimals
-    const platformFee = netAmount.mul(50).div(10000); // 0.5% 수수료
-    const totalDeposit = netAmount.add(platformFee);
+    // 필요한 총 예치금 계산
+    const totalDeposit = ethers.utils.parseUnits(usdtAmount.toString(), 6); // USDT는 6 decimals
     
     // USDT 승인
     const approveTx = await usdtContract.approve(CONTRACT_ADDRESS, totalDeposit);
@@ -872,15 +778,12 @@ app.post('/api/streams', async (req, res) => {
     const { receiver, usdtAmount, durationDays, senderAddress } = req.body;
     
     // 필요한 승인 금액 계산
-    const netAmount = ethers.utils.parseUnits(usdtAmount.toString(), 6);
-    const platformFee = netAmount.mul(50).div(10000);
-    const requiredAllowance = netAmount.add(platformFee);
+    const requiredAllowance = ethers.utils.parseUnits(usdtAmount.toString(), 6);
     
     res.json({
       success: true,
       requiredAllowance: ethers.utils.formatUnits(requiredAllowance, 6),
-      netAmount: usdtAmount,
-      platformFee: ethers.utils.formatUnits(platformFee, 6)
+      netAmount: usdtAmount
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

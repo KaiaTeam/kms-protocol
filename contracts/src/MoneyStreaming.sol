@@ -4,9 +4,8 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MoneyStreaming is ReentrancyGuard, Ownable {
+contract MoneyStreaming is ReentrancyGuard {
     struct Stream {
         address sender;
         address receiver;
@@ -25,10 +24,6 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
     mapping(address => uint256[]) public receiverStreams;
     
     uint256 public nextStreamId = 1;
-    uint256 public platformFeeRate = 50; // 0.5% = 50/10000
-    uint256 private constant FEE_DENOMINATOR = 10000;
-    
-    address public feeCollector;
     
     event StreamCreated(
         uint256 indexed streamId,
@@ -54,9 +49,7 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
     error WithdrawFailed();
     error InvalidFlowRate();
     
-    constructor(address _feeCollector) Ownable(msg.sender) {
-        feeCollector = _feeCollector;
-    }
+    constructor() {}
     
     function createStream(
         address receiver,
@@ -72,22 +65,15 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
         
         uint256 duration = stopTime - startTime;
         
-        // Calculate platform fee from deposit amount
-        uint256 platformFee = (deposit * platformFeeRate) / FEE_DENOMINATOR;
-        uint256 netAmount = deposit - platformFee;
-        
-        // Verify that the provided flowRate matches the net amount and duration
-        uint256 expectedFlowRate = netAmount / duration;
+        // Verify that the provided flowRate matches the deposit amount and duration
+        uint256 expectedFlowRate = deposit / duration;
         if (flowRate != expectedFlowRate) revert InvalidFlowRate();
         
         // Basic deposit validation
-        if (deposit == 0 || netAmount == 0) revert InsufficientDeposit();
+        if (deposit == 0) revert InsufficientDeposit();
         
         // Transfer deposit from sender
         IERC20(token).transferFrom(msg.sender, address(this), deposit);
-        
-        // Transfer platform fee to fee collector
-        IERC20(token).transfer(feeCollector, platformFee);
         
         uint256 streamId = nextStreamId++;
         
@@ -95,11 +81,11 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
             sender: msg.sender,
             receiver: receiver,
             token: token,
-            deposit: netAmount, // Store the net streaming amount
+            deposit: deposit,
             flowRate: flowRate,
             startTime: startTime,
             stopTime: stopTime,
-            remainingBalance: netAmount,
+            remainingBalance: deposit,
             withdrawnBalance: 0,
             isActive: true
         });
@@ -289,15 +275,6 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
         return endTime - stream.startTime;
     }
     
-    function setPlatformFeeRate(uint256 newFeeRate) external onlyOwner {
-        require(newFeeRate <= 1000, "Fee rate cannot exceed 10%"); // Max 10%
-        platformFeeRate = newFeeRate;
-    }
-    
-    function setFeeCollector(address newFeeCollector) external onlyOwner {
-        require(newFeeCollector != address(0), "Invalid fee collector");
-        feeCollector = newFeeCollector;
-    }
     
     // USDT specific utility functions
     function createStreamUSDT(
@@ -308,18 +285,13 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
     ) external returns (uint256) {
         require(IERC20Metadata(usdtToken).decimals() == 6, "Token must have 6 decimals (USDT)");
         
-        uint256 netAmount = totalUSDTAmount * 10**6; // Convert to 6 decimal places (this is what user wants to stream)
-        uint256 platformFee = (netAmount * platformFeeRate) / FEE_DENOMINATOR;
-        uint256 deposit = netAmount + platformFee; // Total amount user needs to deposit
-        uint256 flowRate = netAmount / durationInSeconds; // Flow rate based on net amount
+        uint256 deposit = totalUSDTAmount * 10**6; // Convert to 6 decimal places
+        uint256 flowRate = deposit / durationInSeconds;
         uint256 startTime = block.timestamp;
         uint256 stopTime = startTime + durationInSeconds;
         
         // Transfer deposit from sender
         IERC20(usdtToken).transferFrom(msg.sender, address(this), deposit);
-        
-        // Transfer platform fee to fee collector
-        IERC20(usdtToken).transfer(feeCollector, platformFee);
         
         uint256 streamId = nextStreamId++;
         
@@ -327,11 +299,11 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
             sender: msg.sender,
             receiver: receiver,
             token: usdtToken,
-            deposit: netAmount, // Store net amount (without platform fee)
+            deposit: deposit,
             flowRate: flowRate,
             startTime: startTime,
             stopTime: stopTime,
-            remainingBalance: netAmount,
+            remainingBalance: deposit,
             withdrawnBalance: 0,
             isActive: true
         });
@@ -354,17 +326,12 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
         require(IERC20Metadata(usdtToken).decimals() == 6, "Token must have 6 decimals (USDT)");
         require(stopTime > startTime, "Invalid time range");
         
-        uint256 netAmount = totalUSDTAmount * 10**6; // Convert to 6 decimal places (this is what user wants to stream)
-        uint256 platformFee = (netAmount * platformFeeRate) / FEE_DENOMINATOR;
-        uint256 deposit = netAmount + platformFee; // Total amount user needs to deposit
+        uint256 deposit = totalUSDTAmount * 10**6; // Convert to 6 decimal places
         uint256 duration = stopTime - startTime;
-        uint256 flowRate = netAmount / duration; // Flow rate based on net amount
+        uint256 flowRate = deposit / duration;
         
         // Transfer deposit from sender
         IERC20(usdtToken).transferFrom(msg.sender, address(this), deposit);
-        
-        // Transfer platform fee to fee collector
-        IERC20(usdtToken).transfer(feeCollector, platformFee);
         
         uint256 streamId = nextStreamId++;
         
@@ -372,11 +339,11 @@ contract MoneyStreaming is ReentrancyGuard, Ownable {
             sender: msg.sender,
             receiver: receiver,
             token: usdtToken,
-            deposit: netAmount, // Store net amount (without platform fee)
+            deposit: deposit,
             flowRate: flowRate,
             startTime: startTime,
             stopTime: stopTime,
-            remainingBalance: netAmount,
+            remainingBalance: deposit,
             withdrawnBalance: 0,
             isActive: true
         });
